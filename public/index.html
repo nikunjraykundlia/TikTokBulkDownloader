@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Bulk Downloader</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fab fa-tiktok"></i> TikTok Bulk Downloader</h1>
+            <p>Download watermark-free TikTok videos with ease</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('single')">
+                <i class="fas fa-download"></i> Single Download
+            </button>
+            <button class="tab-button" onclick="showTab('bulk')">
+                <i class="fas fa-list"></i> Bulk Download
+            </button>
+        </div>
+
+        <!-- Single Download Tab -->
+        <div id="single-tab" class="tab-content active">
+            <div class="input-section">
+                <h3>Download Single Video</h3>
+                <div class="input-group">
+                    <input type="url" id="single-url" placeholder="https://www.tiktok.com/@username/video/..." class="url-input">
+                    <button onclick="downloadSingle()" class="download-btn">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Download Tab -->
+        <div id="bulk-tab" class="tab-content">
+            <div class="input-section">
+                <h3>Bulk Download</h3>
+                <div class="bulk-input-group">
+                    <textarea id="bulk-urls" placeholder="Enter TikTok URLs, one per line...&#10;https://www.tiktok.com/@user1/video/123...&#10;https://www.tiktok.com/@user2/video/456..." class="bulk-textarea"></textarea>
+                    <div class="bulk-controls">
+                        <div class="concurrency-control">
+                            <label for="concurrency">Concurrent Downloads:</label>
+                            <input type="number" id="concurrency" min="1" max="10" value="3" class="concurrency-input">
+                        </div>
+                        <button onclick="downloadBulk()" class="download-btn">
+                            <i class="fas fa-download"></i> Start Bulk Download
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div id="progress-section" class="progress-section" style="display: none;">
+            <h3>Download Progress</h3>
+            <div id="progress-container"></div>
+            <div id="summary" class="summary" style="display: none;"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="results-section" style="display: none;">
+            <h3>Download Results</h3>
+            <div id="results-container"></div>
+        </div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

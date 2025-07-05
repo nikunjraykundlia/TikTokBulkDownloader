@@ -1,0 +1,29 @@
+modules = ["nodejs-20"]
+
+[nix]
+channel = "stable-24_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "TikTok Downloader Server"
+
+[[workflows.workflow]]
+name = "TikTok Downloader Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install && npm install typescript @types/node @types/express @types/cors ts-node express cors axios playwright p-limit socket.io dotenv && npx playwright install chromium && npx ts-node src/server.ts"
+waitForPort = 5000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
