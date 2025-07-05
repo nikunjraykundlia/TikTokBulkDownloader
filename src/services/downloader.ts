@@ -35,6 +35,9 @@ export class Downloader {
     const filePath = path.join(this.outputDir, filename);
     let attempt = 0;
     
+    // Add delay before starting download to prevent server overload
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     while (attempt < this.retryLimit) {
       try {
         logger.info(`Downloading ${filename} (attempt ${attempt + 1}/${this.retryLimit})`);

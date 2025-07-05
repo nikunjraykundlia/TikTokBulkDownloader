@@ -54,7 +54,7 @@ router.post('/single', async (req: Request, res: Response): Promise<any> => {
 
 router.post('/bulk', async (req: Request, res: Response): Promise<any> => {
   try {
-    const { urls, concurrency = 3 } = req.body as DownloadRequest;
+    const { urls, concurrency = 2 } = req.body as DownloadRequest;
     const io = req.app.get('io');
     
     if (!urls || !Array.isArray(urls) || urls.length === 0) {
@@ -77,8 +77,8 @@ router.post('/bulk', async (req: Request, res: Response): Promise<any> => {
       urls.map((url, index) =>
         limit(async () => {
           try {
-            // Add delay to prevent API rate limiting
-            await new Promise(resolve => setTimeout(resolve, index * 1000));
+            // Add delay to prevent API rate limiting and server overload
+            await new Promise(resolve => setTimeout(resolve, index * 2000));
             
             const urlInfo = parseTikTokUrl(url);
             const filename = generateFilename(urlInfo);

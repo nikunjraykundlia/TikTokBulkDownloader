@@ -297,10 +297,10 @@ class TikTokDownloader {
         // Auto-download all successful files
         data.results.forEach(result => {
             if (result.success && result.downloadUrl) {
-                // Add a small delay between downloads to prevent browser blocking
+                // Add a 2-second delay between downloads to prevent browser blocking
                 setTimeout(() => {
                     this.downloadFile(result.downloadUrl, result.filename);
-                }, data.results.indexOf(result) * 500); // 500ms delay between each
+                }, data.results.indexOf(result) * 2000); // 2 second delay between each
             }
         });
         
