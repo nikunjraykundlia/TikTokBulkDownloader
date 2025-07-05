@@ -20,30 +20,3 @@ export const logger = {
   warn: (m: string) => log(colors.yellow, 'WARN', m),
   debug: (m: string) => log(colors.magenta, 'DEBUG', m),
 };
-export class Logger {
-  private getTimestamp(): string {
-    return new Date().toISOString();
-  }
-
-  info(message: string): void {
-    console.log(`[${this.getTimestamp()}] INFO: ${message}`);
-  }
-
-  success(message: string): void {
-    console.log(`[${this.getTimestamp()}] SUCCESS: ${message}`);
-  }
-
-  error(message: string): void {
-    console.error(`[${this.getTimestamp()}] ERROR: ${message}`);
-  }
-
-  warn(message: string): void {
-    console.warn(`[${this.getTimestamp()}] WARN: ${message}`);
-  }
-
-  debug(message: string): void {
-    console.log(`[${this.getTimestamp()}] DEBUG: ${message}`);
-  }
-}
-
-export const logger = new Logger();

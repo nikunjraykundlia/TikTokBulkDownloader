@@ -116,7 +116,11 @@ router.post('/bulk', async (req: Request, res: Response): Promise<any> => {
               (progress) => {
                 io.emit('download-progress', {
                   sessionId,
-                  ...progress,
+                  url: progress.url,
+                  filename: progress.filename,
+                  status: progress.status,
+                  progress: progress.progress,
+                  error: progress.error,
                   index
                 });
               }

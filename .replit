@@ -5,7 +5,7 @@ channel = "stable-24_05"
 packages = ["glib", "nss", "dbus", "atk", "cairo"]
 
 [workflows]
-runButton = "Project"
+runButton = "Start TikTok Server"
 
 [[workflows.workflow]]
 name = "Project"
@@ -24,6 +24,19 @@ author = "agent"
 task = "shell.exec"
 args = "npm install && npm install typescript @types/node @types/express @types/cors ts-node express cors axios playwright p-limit socket.io dotenv && npx playwright install chromium && npx ts-node src/server.ts"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Start TikTok Server"
+author = 44341441
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx ts-node src/server.ts"
 
 [[ports]]
 localPort = 5000

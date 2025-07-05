@@ -18,7 +18,7 @@ export class TikTokApiService {
   async getDirectUrl(tiktokUrl: string): Promise<TikTokVideoInfo> {
     try {
       logger.info(`Fetching video info for: ${tiktokUrl}`);
-      
+
       // Try multiple API services
       const apiServices = [
         {
@@ -38,7 +38,7 @@ export class TikTokApiService {
       for (const api of apiServices) {
         try {
           logger.info(`Trying ${api.name} API...`);
-          
+
           let response;
           if (api.method === 'POST') {
             response = await axios.post(api.url, api.data, {
@@ -61,10 +61,10 @@ export class TikTokApiService {
           // Handle TikWM response
           if (api.name === 'TikWM' && response.data && response.data.code === 0 && response.data.data) {
             const data = response.data.data;
-            
+
             // Prefer HD, then regular play, then watermarked as last resort
             const directUrl = data.hdplay || data.play || data.wmplay;
-            
+
             if (directUrl) {
               // Validate the URL is actually a video URL
               if (directUrl.includes('.mp4') || directUrl.includes('video') || directUrl.includes('tiktok')) {
@@ -80,7 +80,7 @@ export class TikTokApiService {
               }
             }
           }
-          
+
           // Handle TikTok oEmbed response
           if (api.name === 'SnapTik Alternative' && response.data) {
             // This is a basic fallback that provides metadata
@@ -91,55 +91,28 @@ export class TikTokApiService {
               duration: ''
             };
           }
-          
+
         } catch (apiError) {
-          logger.warn(`${api.name} API failed: ${apiError.message}`);
+          logger.warn(`${api.name} API failed: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`);
           continue;
         }
       }
-      
+
       // If all APIs fail, throw an error instead of mock data
       throw new Error('Unable to fetch video information from external APIs. This may be due to:\n' +
         '1. Invalid TikTok URL format\n' +
         '2. Video privacy settings\n' +
         '3. API service temporary unavailability\n' +
         'Please try with a different public TikTok video URL.');
-      
+
     } catch (error) {
-      logger.error(`All API services failed: ${error.message}`);
-      throw new Error(`Failed to get video URL: ${error.message}`);
+      logger.error(`All API services failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to get video URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   async close(): Promise<void> {
     // No cleanup needed for API service
-  }
-}
-
-export const tiktokApiService = new TikTokApiService();
-import axios from 'axios';
-import { logger } from '../utils/logger';
-import { TikTokVideoInfo } from './tiktok-service';
-
-export class TikTokApiService {
-  private readonly timeout: number;
-  
-  constructor() {
-    this.timeout = Number(process.env.SERVICE_TIMEOUT_MS) || 20000;
-  }
-
-  async getDirectUrl(tiktokUrl: string): Promise<TikTokVideoInfo> {
-    try {
-      logger.info(`Using API extraction for: ${tiktokUrl}`);
-      
-      // For now, fall back to the web scraping service
-      const { tiktokService } = await import('./tiktok-service');
-      return await tiktokService.getDirectUrl(tiktokUrl);
-      
-    } catch (error) {
-      logger.error(`API service failed: ${error}`);
-      throw new Error(`Failed to extract video info: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
   }
 }
 
