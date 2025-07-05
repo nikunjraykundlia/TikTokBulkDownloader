@@ -20,6 +20,10 @@ class TikTokDownloader {
             this.handleBulkComplete(data);
         });
 
+        this.socket.on('download-stopped', (data) => {
+            this.handleDownloadStopped(data);
+        });
+
         this.socket.on('download-error', (data) => {
             this.showToast('Download Error: ' + data.error, 'error');
         });
@@ -197,6 +201,9 @@ class TikTokDownloader {
                 this.currentSession = result.sessionId;
                 this.showToast(`Bulk download started (${urls.length} videos)`, 'info');
                 downloadBtn.innerHTML = '<div class="loading"></div> Downloading...';
+                
+                // Add stop button
+                this.addStopButton();
             } else {
                 throw new Error(result.error);
             }
@@ -287,6 +294,12 @@ class TikTokDownloader {
         const downloadBtn = document.querySelector('#bulk-tab .download-btn');
         downloadBtn.disabled = false;
         downloadBtn.innerHTML = '<i class="fas fa-download"></i> Start Bulk Download';
+        
+        // Remove stop button
+        const stopBtn = document.getElementById('stop-download-btn');
+        if (stopBtn) {
+            stopBtn.remove();
+        }
         
         // Show summary
         this.showSummary(data);
@@ -426,6 +439,68 @@ class TikTokDownloader {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    }
+
+    addStopButton() {
+        const progressSection = document.getElementById('progress-section');
+        const existingStopBtn = document.getElementById('stop-download-btn');
+        
+        if (!existingStopBtn) {
+            const stopBtn = document.createElement('button');
+            stopBtn.id = 'stop-download-btn';
+            stopBtn.className = 'stop-btn';
+            stopBtn.innerHTML = '<i class="fas fa-stop"></i> Stop Download';
+            stopBtn.style.cssText = `
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                margin: 10px 0;
+                font-size: 14px;
+            `;
+            
+            stopBtn.onclick = () => this.stopDownload();
+            progressSection.appendChild(stopBtn);
+        }
+    }
+
+    async stopDownload() {
+        if (!this.currentSession) return;
+        
+        try {
+            const response = await fetch(`/api/download/stop/${this.currentSession}`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                this.showToast('Download stopped successfully', 'warning');
+            } else {
+                throw new Error('Failed to stop download');
+            }
+        } catch (error) {
+            this.showToast('Failed to stop download: ' + error.message, 'error');
+        }
+    }
+
+    handleDownloadStopped(data) {
+        if (data.sessionId === this.currentSession) {
+            this.currentSession = null;
+            
+            // Re-enable download button
+            const downloadBtn = document.querySelector('#bulk-tab .download-btn');
+            downloadBtn.disabled = false;
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Start Bulk Download';
+            
+            // Remove stop button
+            const stopBtn = document.getElementById('stop-download-btn');
+            if (stopBtn) {
+                stopBtn.remove();
+            }
+            
+            this.showToast('Download session stopped', 'info');
+        }
     }
 }
 

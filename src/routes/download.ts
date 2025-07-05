@@ -8,6 +8,9 @@ import pLimit from 'p-limit';
 import { promises as fs } from 'fs';
 import path from 'path';
 
+// Session management for bulk downloads
+const activeSessions = new Map<string, { cancelled: boolean, completed: number, total: number }>();
+
 const router = Router();
 
 interface DownloadRequest {
@@ -64,6 +67,9 @@ router.post('/bulk', async (req: Request, res: Response): Promise<any> => {
     const limit = pLimit(concurrency);
     const sessionId = `bulk-${Date.now()}`;
     
+    // Initialize session tracking
+    activeSessions.set(sessionId, { cancelled: false, completed: 0, total: urls.length });
+    
     // Send initial response
     res.json({
       success: true,
@@ -77,6 +83,14 @@ router.post('/bulk', async (req: Request, res: Response): Promise<any> => {
       urls.map((url, index) =>
         limit(async () => {
           try {
+            const sessionState = activeSessions.get(sessionId);
+            
+            // Check if session is cancelled or completed
+            if (!sessionState || sessionState.cancelled || sessionState.completed >= sessionState.total) {
+              logger.info(`Session ${sessionId} cancelled or completed, skipping download`);
+              return { url, filename: '', filePath: null, downloadUrl: null, videoInfo: null, success: false, error: 'Session cancelled' };
+            }
+            
             // Add delay to prevent API rate limiting and server overload
             await new Promise(resolve => setTimeout(resolve, index * 2000));
             
@@ -107,6 +121,13 @@ router.post('/bulk', async (req: Request, res: Response): Promise<any> => {
                 });
               }
             );
+            
+            // Update session progress
+            const currentSession = activeSessions.get(sessionId);
+            if (currentSession) {
+              currentSession.completed++;
+              logger.info(`Session ${sessionId}: ${currentSession.completed}/${currentSession.total} completed`);
+            }
             
             return {
               url,
@@ -144,6 +165,9 @@ router.post('/bulk', async (req: Request, res: Response): Promise<any> => {
     const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
     const failed = results.length - successful;
     
+    // Clean up session
+    activeSessions.delete(sessionId);
+    
     io.emit('download-complete', {
       sessionId,
       total: urls.length,
@@ -161,11 +185,30 @@ router.post('/bulk', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+router.post('/stop/:sessionId', (req: Request, res: Response) => {
+  const sessionId = req.params.sessionId;
+  const session = activeSessions.get(sessionId);
+  
+  if (session) {
+    session.cancelled = true;
+    logger.info(`Session ${sessionId} marked for cancellation`);
+    
+    // Emit stop event to clients
+    const io = req.app.get('io');
+    io.emit('download-stopped', { sessionId });
+    
+    res.json({ success: true, message: 'Download stopped' });
+  } else {
+    res.status(404).json({ error: 'Session not found' });
+  }
+});
+
 router.get('/status', (req: Request, res: Response) => {
   res.json({
     status: 'running',
     service: process.env.DOWNLOAD_SERVICE || 'https://snaptik.app',
-    outputDir: process.env.OUTPUT_DIR || 'downloads'
+    outputDir: process.env.OUTPUT_DIR || 'downloads',
+    activeSessions: Array.from(activeSessions.keys())
   });
 });
 
