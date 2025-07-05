@@ -74,7 +74,16 @@ export class Downloader {
           response.data.on('error', reject);
         });
         
-        logger.success(`Downloaded: ${filename}`);
+        // Validate file size after download
+        const stats = await fs.stat(filePath);
+        const fileSize = stats.size;
+        
+        // Check if file is too small (likely corrupted or empty)
+        if (fileSize < 1024) { // Less than 1KB
+          throw new Error(`Downloaded file is too small (${fileSize} bytes), likely corrupted`);
+        }
+        
+        logger.success(`Downloaded: ${filename} (${Math.round(fileSize/1024)}KB)`);
         
         if (onProgress) {
           onProgress({

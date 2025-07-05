@@ -294,6 +294,16 @@ class TikTokDownloader {
         // Show results
         this.showResults(data.results);
         
+        // Auto-download all successful files
+        data.results.forEach(result => {
+            if (result.success && result.downloadUrl) {
+                // Add a small delay between downloads to prevent browser blocking
+                setTimeout(() => {
+                    this.downloadFile(result.downloadUrl, result.filename);
+                }, data.results.indexOf(result) * 500); // 500ms delay between each
+            }
+        });
+        
         // Show completion toast
         if (data.failed === 0) {
             this.showToast('All downloads completed successfully!', 'success');

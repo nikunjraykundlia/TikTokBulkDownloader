@@ -77,6 +77,9 @@ router.post('/bulk', async (req: Request, res: Response): Promise<any> => {
       urls.map((url, index) =>
         limit(async () => {
           try {
+            // Add delay to prevent API rate limiting
+            await new Promise(resolve => setTimeout(resolve, index * 1000));
+            
             const urlInfo = parseTikTokUrl(url);
             const filename = generateFilename(urlInfo);
             

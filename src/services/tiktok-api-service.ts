@@ -61,15 +61,23 @@ export class TikTokApiService {
           // Handle TikWM response
           if (api.name === 'TikWM' && response.data && response.data.code === 0 && response.data.data) {
             const data = response.data.data;
+            
+            // Prefer HD, then regular play, then watermarked as last resort
             const directUrl = data.hdplay || data.play || data.wmplay;
             
             if (directUrl) {
-              return {
-                directUrl,
-                title: data.title || '',
-                author: data.author?.unique_id || '',
-                duration: data.duration ? `${data.duration}s` : ''
-              };
+              // Validate the URL is actually a video URL
+              if (directUrl.includes('.mp4') || directUrl.includes('video') || directUrl.includes('tiktok')) {
+                logger.success(`Found valid video URL: ${directUrl.substring(0, 50)}...`);
+                return {
+                  directUrl,
+                  title: data.title || '',
+                  author: data.author?.unique_id || '',
+                  duration: data.duration ? `${data.duration}s` : ''
+                };
+              } else {
+                logger.warn(`Invalid video URL format: ${directUrl}`);
+              }
             }
           }
           
