@@ -1,10 +1,4 @@
-# TikTok Bulk Downloader
-
-<p align="center">
-  <img src="public/tiktok-logo.svg" alt="TikTok Logo" width="80" />
-</p>
-
-## 🚀 TikTok Bulk Downloader
+# 🚀 TikTok Bulk Downloader
 
 A beautiful, modern web app to download watermark-free TikTok videos in bulk or individually. Built with a clean, accessible UI and a powerful TypeScript backend.
 
