@@ -51,14 +51,7 @@ The app will be available at [http://localhost:5000](http://localhost:5000)
 
 ---
 
-## 📄 License
-
-MIT License
-
----
-
 ## 🙏 Credits
 
 - TikTok logo and brand assets © TikTok
 - UI inspired by modern design best practices
-- Developed by [Nikunj Raykundlia](https://github.com/nikunjraykundlia)
