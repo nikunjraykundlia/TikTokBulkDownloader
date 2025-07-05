@@ -15,12 +15,6 @@ A beautiful, modern web app to download watermark-free TikTok videos in bulk or 
 
 ---
 
-## 📸 Screenshots
-
-> _Add your screenshots here_
-
----
-
 ## 🛠️ Installation
 
 ```bash
