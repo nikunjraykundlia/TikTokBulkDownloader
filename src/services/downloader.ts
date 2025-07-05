@@ -126,3 +126,85 @@ export class Downloader {
 }
 
 export const downloader = new Downloader();
+import axios from 'axios';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { logger } from '../utils/logger';
+
+export class Downloader {
+  private readonly outputDir: string;
+  private readonly retryLimit: number;
+
+  constructor() {
+    this.outputDir = process.env.OUTPUT_DIR || 'downloads';
+    this.retryLimit = Number(process.env.RETRY_LIMIT) || 3;
+    this.ensureOutputDir();
+  }
+
+  private async ensureOutputDir(): Promise<void> {
+    try {
+      await fs.mkdir(this.outputDir, { recursive: true });
+    } catch (error) {
+      logger.error(`Failed to create output directory: ${error}`);
+    }
+  }
+
+  async downloadFile(url: string, filename: string, onProgress?: (progress: number) => void): Promise<string> {
+    const filePath = path.join(this.outputDir, filename);
+    let attempt = 0;
+
+    while (attempt < this.retryLimit) {
+      try {
+        logger.info(`Downloading ${filename} (attempt ${attempt + 1})`);
+        
+        const response = await axios({
+          url,
+          method: 'GET',
+          responseType: 'stream',
+          timeout: 30000,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
+
+        const totalLength = parseInt(response.headers['content-length'] || '0');
+        let downloadedLength = 0;
+
+        const writer = require('fs').createWriteStream(filePath);
+        
+        response.data.on('data', (chunk: Buffer) => {
+          downloadedLength += chunk.length;
+          if (onProgress && totalLength > 0) {
+            const progress = Math.round((downloadedLength / totalLength) * 100);
+            onProgress(progress);
+          }
+        });
+
+        response.data.pipe(writer);
+
+        return new Promise((resolve, reject) => {
+          writer.on('finish', () => {
+            logger.success(`Downloaded: ${filename}`);
+            resolve(filePath);
+          });
+          writer.on('error', reject);
+        });
+
+      } catch (error) {
+        attempt++;
+        logger.warn(`Download attempt ${attempt} failed for ${filename}: ${error}`);
+        
+        if (attempt >= this.retryLimit) {
+          throw new Error(`Failed to download ${filename} after ${this.retryLimit} attempts`);
+        }
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
+
+    throw new Error(`Download failed after ${this.retryLimit} attempts`);
+  }
+}
+
+export const downloader = new Downloader();

@@ -117,3 +117,30 @@ export class TikTokApiService {
 }
 
 export const tiktokApiService = new TikTokApiService();
+import axios from 'axios';
+import { logger } from '../utils/logger';
+import { TikTokVideoInfo } from './tiktok-service';
+
+export class TikTokApiService {
+  private readonly timeout: number;
+  
+  constructor() {
+    this.timeout = Number(process.env.SERVICE_TIMEOUT_MS) || 20000;
+  }
+
+  async getDirectUrl(tiktokUrl: string): Promise<TikTokVideoInfo> {
+    try {
+      logger.info(`Using API extraction for: ${tiktokUrl}`);
+      
+      // For now, fall back to the web scraping service
+      const { tiktokService } = await import('./tiktok-service');
+      return await tiktokService.getDirectUrl(tiktokUrl);
+      
+    } catch (error) {
+      logger.error(`API service failed: ${error}`);
+      throw new Error(`Failed to extract video info: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+}
+
+export const tiktokApiService = new TikTokApiService();
