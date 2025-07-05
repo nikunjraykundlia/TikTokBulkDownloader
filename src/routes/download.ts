@@ -5,6 +5,8 @@ import { downloader } from '../services/downloader';
 import { parseTikTokUrl, generateFilename } from '../utils/parseTtUrl';
 import { logger } from '../utils/logger';
 import pLimit from 'p-limit';
+import { promises as fs } from 'fs';
+import path from 'path';
 
 const router = Router();
 
@@ -38,6 +40,7 @@ router.post('/single', async (req: Request, res: Response): Promise<any> => {
       success: true,
       filename,
       filePath,
+      downloadUrl: `/api/download/file/${filename}`,
       videoInfo
     });
     
@@ -106,6 +109,7 @@ router.post('/bulk', async (req: Request, res: Response): Promise<any> => {
               url,
               filename,
               filePath,
+              downloadUrl: `/api/download/file/${filename}`,
               videoInfo,
               success: true
             };
@@ -160,6 +164,28 @@ router.get('/status', (req: Request, res: Response) => {
     service: process.env.DOWNLOAD_SERVICE || 'https://snaptik.app',
     outputDir: process.env.OUTPUT_DIR || 'downloads'
   });
+});
+
+// New endpoint to serve downloaded files
+router.get('/file/:filename', async (req: Request, res: Response) => {
+  try {
+    const filename = req.params.filename;
+    const filePath = path.join(process.env.OUTPUT_DIR || 'downloads', filename);
+    
+    // Check if file exists
+    await fs.access(filePath);
+    
+    // Set headers for file download
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'video/mp4');
+    
+    // Send file
+    res.sendFile(path.resolve(filePath));
+    
+  } catch (error) {
+    logger.error(`File serving failed: ${error.message}`);
+    res.status(404).json({ error: 'File not found' });
+  }
 });
 
 export default router;

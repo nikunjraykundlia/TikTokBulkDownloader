@@ -115,9 +115,15 @@ class TikTokDownloader {
                 this.showResults([{
                     url,
                     filename: result.filename,
+                    downloadUrl: result.downloadUrl,
                     success: true,
                     videoInfo: result.videoInfo
                 }]);
+                
+                // Auto-download the file
+                if (result.downloadUrl) {
+                    this.downloadFile(result.downloadUrl, result.filename);
+                }
             } else {
                 throw new Error(result.error);
             }
@@ -342,6 +348,14 @@ class TikTokDownloader {
                     ${result.videoInfo.title ? `Title: ${result.videoInfo.title}` : ''}
                     ${result.videoInfo.author ? ` | Author: ${result.videoInfo.author}` : ''}
                 </div>` : ''}
+                ${result.success && result.downloadUrl ? `
+                    <div style="margin-top: 10px;">
+                        <button onclick="app.downloadFile('${result.downloadUrl}', '${result.filename}')" 
+                                class="download-btn" style="padding: 8px 16px; font-size: 0.9em;">
+                            <i class="fas fa-download"></i> Download to Device
+                        </button>
+                    </div>
+                ` : ''}
             `;
             resultsContainer.appendChild(resultItem);
         });
@@ -392,6 +406,16 @@ class TikTokDownloader {
         setTimeout(() => {
             toast.remove();
         }, 5000);
+    }
+
+    downloadFile(url, filename) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 }
 
