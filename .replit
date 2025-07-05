@@ -36,6 +36,10 @@ args = "npm install"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
+args = "npx playwright install chromium"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
 args = "npx ts-node src/server.ts"
 
 [[ports]]
