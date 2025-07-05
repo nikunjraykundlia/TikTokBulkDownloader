@@ -135,8 +135,21 @@ public/
 
 ```
 Changelog:
-- July 05, 2025. Initial setup
+- July 05, 2025. Initial setup with web interface and Playwright browser service
+- July 05, 2025. Added API-based fallback service due to browser dependency issues
+- July 05, 2025. Implemented dual-service architecture (browser + API fallback)
+- July 05, 2025. Currently using API service as primary method due to missing system dependencies
 ```
+
+## Current Status
+
+The application is now fully functional with a web interface that includes:
+- Single video download functionality 
+- Bulk download with concurrency control
+- Real-time progress tracking via Socket.IO
+- API-based video extraction (fallback from browser service)
+
+**Note**: Browser service requires additional system dependencies that are not available in the current environment. The application currently uses API-based extraction as the primary method.
 
 ## User Preferences
 

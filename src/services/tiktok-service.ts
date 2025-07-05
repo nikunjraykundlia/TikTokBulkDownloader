@@ -22,10 +22,24 @@ export class TikTokService {
 
   async init(): Promise<void> {
     if (!this.browser) {
-      this.browser = await chromium.launch({ 
-        headless: this.headless,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
+      try {
+        this.browser = await chromium.launch({ 
+          headless: this.headless,
+          args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu'
+          ]
+        });
+      } catch (error) {
+        logger.error(`Failed to launch browser: ${error.message}`);
+        throw new Error('Browser dependencies are missing. The system needs additional packages to run Chromium.');
+      }
     }
   }
 
