@@ -1,4 +1,4 @@
-## 🚀 TikTok Bulk Downloader
+# 🚀 TikTok Bulk Downloader
 
 A beautiful, modern web app to download watermark-free TikTok videos in bulk or individually. Built with a clean, accessible UI and a powerful TypeScript backend.
 
@@ -39,3 +39,10 @@ The app will be available at [http://localhost:5000](http://localhost:5000)
 - **Backend:** Node.js, Express, TypeScript
 - **Real-time:** Socket.IO
 - **Downloader:** Playwright, Axios
+
+---
+
+## 🙏 Credits
+
+- TikTok logo and brand assets © TikTok
+- UI inspired by modern design best practices
