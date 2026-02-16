@@ -2,7 +2,8 @@ class TikTokDownloader {
     constructor() {
         this.socket = io();
         this.currentSession = null;
-        this.progressItems = new Map();
+        this.sessionResults = [];    // Accumulated results for this session
+        this.sessionSummary = { total: 0, successful: 0, failed: 0 }; // Accumulated summary
         this.init();
     }
 
@@ -12,10 +13,6 @@ class TikTokDownloader {
     }
 
     setupSocketListeners() {
-        this.socket.on('download-progress', (data) => {
-            this.updateProgress(data);
-        });
-
         this.socket.on('download-complete', (data) => {
             this.handleBulkComplete(data);
         });
@@ -83,15 +80,6 @@ class TikTokDownloader {
         try {
             downloadBtn.disabled = true;
             downloadBtn.innerHTML = '<div class="loading"></div> Downloading...';
-            
-            this.showProgressSection();
-            this.addProgressItem({
-                url,
-                filename: 'Preparing...',
-                status: 'fetching-url',
-                progress: 0,
-                index: 0
-            });
 
             const response = await fetch('/api/download/single', {
                 method: 'POST',
@@ -104,25 +92,25 @@ class TikTokDownloader {
             const result = await response.json();
 
             if (result.success) {
-                this.updateProgress({
-                    url,
-                    filename: result.filename,
-                    status: 'completed',
-                    progress: 100,
-                    index: 0
-                });
-                
                 this.showToast('Download completed successfully!', 'success');
                 urlInput.value = '';
                 
-                // Show download result
-                this.showResults([{
+                // Accumulate result into session
+                this.sessionResults.push({
                     url,
                     filename: result.filename,
                     downloadUrl: result.downloadUrl,
                     success: true,
                     videoInfo: result.videoInfo
-                }]);
+                });
+
+                // Update session summary
+                this.sessionSummary.total += 1;
+                this.sessionSummary.successful += 1;
+
+                // Re-render accumulated results and summary
+                this.renderSessionResults();
+                this.renderSessionSummary();
                 
                 // Auto-download the file
                 if (result.downloadUrl) {
@@ -133,14 +121,23 @@ class TikTokDownloader {
             }
         } catch (error) {
             console.error('Download failed:', error);
-            this.updateProgress({
+
+            // Accumulate failed result
+            this.sessionResults.push({
                 url,
                 filename: 'Failed',
-                status: 'failed',
-                progress: 0,
-                error: error.message,
-                index: 0
+                success: false,
+                error: error.message
             });
+
+            // Update session summary
+            this.sessionSummary.total += 1;
+            this.sessionSummary.failed += 1;
+
+            // Re-render
+            this.renderSessionResults();
+            this.renderSessionSummary();
+
             this.showToast('Download failed: ' + error.message, 'error');
         } finally {
             downloadBtn.disabled = false;
@@ -172,20 +169,6 @@ class TikTokDownloader {
         try {
             downloadBtn.disabled = true;
             downloadBtn.innerHTML = '<div class="loading"></div> Starting...';
-            
-            this.showProgressSection();
-            this.clearProgress();
-            
-            // Initialize progress items
-            urls.forEach((url, index) => {
-                this.addProgressItem({
-                    url,
-                    filename: 'Waiting...',
-                    status: 'fetching-url',
-                    progress: 0,
-                    index
-                });
-            });
 
             const response = await fetch('/api/download/bulk', {
                 method: 'POST',
@@ -215,78 +198,6 @@ class TikTokDownloader {
         }
     }
 
-    updateProgress(data) {
-        if (!data.url) return;
-
-        const key = `${data.index}-${data.url}`;
-        this.progressItems.set(key, data);
-
-        const container = document.getElementById('progress-container');
-        let item = container.querySelector(`[data-key="${key}"]`);
-
-        if (!item) {
-            item = this.createProgressItem(data);
-            item.setAttribute('data-key', key);
-            container.appendChild(item);
-        }
-
-        this.updateProgressItem(item, data);
-    }
-
-    createProgressItem(data) {
-        const item = document.createElement('div');
-        item.className = 'progress-item';
-        item.innerHTML = `
-            <div class="progress-header">
-                <div class="progress-filename">${data.filename}</div>
-                <div class="progress-status status-${data.status}">${this.getStatusText(data.status)}</div>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: ${data.progress}%"></div>
-            </div>
-            <div class="progress-text">${data.progress.toFixed(1)}%</div>
-            ${data.error ? `<div class="error-message" style="color: #dc3545; margin-top: 5px; font-size: 0.9em;">${data.error}</div>` : ''}
-        `;
-        return item;
-    }
-
-    updateProgressItem(item, data) {
-        const filename = item.querySelector('.progress-filename');
-        const status = item.querySelector('.progress-status');
-        const progressFill = item.querySelector('.progress-fill');
-        const progressText = item.querySelector('.progress-text');
-        
-        filename.textContent = data.filename;
-        status.textContent = this.getStatusText(data.status);
-        status.className = `progress-status status-${data.status}`;
-        progressFill.style.width = `${data.progress}%`;
-        progressText.textContent = `${data.progress.toFixed(1)}%`;
-
-        // Add error message if exists
-        let errorDiv = item.querySelector('.error-message');
-        if (data.error) {
-            if (!errorDiv) {
-                errorDiv = document.createElement('div');
-                errorDiv.className = 'error-message';
-                errorDiv.style.cssText = 'color: #dc3545; margin-top: 5px; font-size: 0.9em;';
-                item.appendChild(errorDiv);
-            }
-            errorDiv.textContent = data.error;
-        } else if (errorDiv) {
-            errorDiv.remove();
-        }
-    }
-
-    getStatusText(status) {
-        const statusMap = {
-            'fetching-url': 'Fetching URL',
-            'downloading': 'Downloading',
-            'completed': 'Completed',
-            'failed': 'Failed'
-        };
-        return statusMap[status] || status;
-    }
-
     handleBulkComplete(data) {
         this.currentSession = null;
         
@@ -301,19 +212,28 @@ class TikTokDownloader {
             stopBtn.remove();
         }
         
-        // Show summary
-        this.showSummary(data);
-        
-        // Show results
-        this.showResults(data.results);
+        // Accumulate results into session
+        if (data.results && Array.isArray(data.results)) {
+            data.results.forEach(result => {
+                this.sessionResults.push(result);
+            });
+        }
+
+        // Accumulate summary stats
+        this.sessionSummary.total += data.total || 0;
+        this.sessionSummary.successful += data.successful || 0;
+        this.sessionSummary.failed += data.failed || 0;
+
+        // Re-render accumulated results and summary
+        this.renderSessionResults();
+        this.renderSessionSummary();
         
         // Auto-download all successful files
         data.results.forEach(result => {
             if (result.success && result.downloadUrl) {
-                // Add a 2-second delay between downloads to prevent browser blocking
                 setTimeout(() => {
                     this.downloadFile(result.downloadUrl, result.filename);
-                }, data.results.indexOf(result) * 2000); // 2 second delay between each
+                }, data.results.indexOf(result) * 2000);
             }
         });
         
@@ -325,35 +245,44 @@ class TikTokDownloader {
         }
     }
 
-    showSummary(data) {
+    renderSessionSummary() {
         const summaryDiv = document.getElementById('summary');
+        const s = this.sessionSummary;
+
+        if (s.total === 0) {
+            summaryDiv.style.display = 'none';
+            return;
+        }
+
         summaryDiv.innerHTML = `
             <h4>Download Summary</h4>
             <div class="summary-stats">
                 <div class="stat-item">
                     <i class="fas fa-list" style="color: #6c757d;"></i>
-                    <span>Total: ${data.total}</span>
+                    <span>Total: ${s.total}</span>
                 </div>
                 <div class="stat-item">
                     <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                    <span>Successful: ${data.successful}</span>
+                    <span>Successful: ${s.successful}</span>
                 </div>
                 <div class="stat-item">
                     <i class="fas fa-times-circle" style="color: #dc3545;"></i>
-                    <span>Failed: ${data.failed}</span>
+                    <span>Failed: ${s.failed}</span>
                 </div>
             </div>
         `;
         summaryDiv.style.display = 'block';
     }
 
-    showResults(results) {
+    renderSessionResults() {
         const resultsSection = document.getElementById('results-section');
         const resultsContainer = document.getElementById('results-container');
         
         resultsContainer.innerHTML = '';
         
-        results.forEach((result, index) => {
+        // Render all accumulated session results (newest first)
+        const reversed = [...this.sessionResults].reverse();
+        reversed.forEach((result, index) => {
             const resultItem = document.createElement('div');
             resultItem.className = 'progress-item';
             resultItem.innerHTML = `
@@ -383,28 +312,20 @@ class TikTokDownloader {
             resultsContainer.appendChild(resultItem);
         });
         
-        resultsSection.style.display = 'block';
+        resultsSection.style.display = this.sessionResults.length > 0 ? 'block' : 'none';
     }
 
-    showProgressSection() {
-        document.getElementById('progress-section').style.display = 'block';
-    }
+    clearMemory() {
+        this.sessionResults = [];
+        this.sessionSummary = { total: 0, successful: 0, failed: 0 };
 
-    clearProgress() {
-        document.getElementById('progress-container').innerHTML = '';
+        // Clear UI
+        document.getElementById('results-container').innerHTML = '';
         document.getElementById('summary').style.display = 'none';
+        document.getElementById('summary').innerHTML = '';
         document.getElementById('results-section').style.display = 'none';
-        this.progressItems.clear();
-    }
 
-    addProgressItem(data) {
-        const key = `${data.index}-${data.url}`;
-        this.progressItems.set(key, data);
-        
-        const container = document.getElementById('progress-container');
-        const item = this.createProgressItem(data);
-        item.setAttribute('data-key', key);
-        container.appendChild(item);
+        this.showToast('Session memory cleared', 'info');
     }
 
     isValidTikTokUrl(url) {
@@ -442,7 +363,7 @@ class TikTokDownloader {
     }
 
     addStopButton() {
-        const progressSection = document.getElementById('progress-section');
+        const resultsSection = document.getElementById('results-section');
         const existingStopBtn = document.getElementById('stop-download-btn');
         
         if (!existingStopBtn) {
@@ -462,7 +383,10 @@ class TikTokDownloader {
             `;
             
             stopBtn.onclick = () => this.stopDownload();
-            progressSection.appendChild(stopBtn);
+
+            // Show results section if not visible (so stop button appears)
+            resultsSection.style.display = 'block';
+            resultsSection.appendChild(stopBtn);
         }
     }
 
@@ -515,6 +439,10 @@ function downloadSingle() {
 
 function downloadBulk() {
     app.downloadBulk();
+}
+
+function clearMemory() {
+    app.clearMemory();
 }
 
 // Initialize the app

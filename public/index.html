@@ -72,16 +72,15 @@
             </div>
         </div>
 
-        <!-- Progress Section -->
-        <div id="progress-section" class="progress-section" style="display: none;">
-            <h3>Download Progress</h3>
-            <div id="progress-container"></div>
-            <div id="summary" class="summary" style="display: none;"></div>
-        </div>
-
-        <!-- Results Section -->
+        <!-- Results Section (with Summary) -->
         <div id="results-section" class="results-section" style="display: none;">
-            <h3>Download Results</h3>
+            <div class="results-header">
+                <h3>Download Results</h3>
+                <button onclick="clearMemory()" class="clear-memory-btn" id="clear-memory-btn">
+                    <i class="fas fa-trash-alt"></i> Clear Memory
+                </button>
+            </div>
+            <div id="summary" class="summary" style="display: none;"></div>
             <div id="results-container"></div>
         </div>
     </div>
